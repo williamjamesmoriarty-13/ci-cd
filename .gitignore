@@ -1,0 +1,9 @@
+.env
+*.pyc
+__pycache__/
+node_modules/
+dist/
+target/
+.idea/
+*.iml
+postgres_data/
