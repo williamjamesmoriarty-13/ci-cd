@@ -35,7 +35,7 @@ public class CourseController {
     @PostMapping
     public ResponseEntity<CourseResponse> createCourse(@Valid @RequestBody CourseCreateRequest request) {
         Course course = new Course(request.getTitle(), request.getDescription(), request.getCapacity());
-        courseRepository.save(course);
+        course = courseRepository.save(course);
         return ResponseEntity.status(HttpStatus.CREATED).body(CourseResponse.from(course));
     }
 
