@@ -7,3 +7,5 @@ target/
 .idea/
 *.iml
 postgres_data/
+lint/lint/
+lint/lint-reports/
