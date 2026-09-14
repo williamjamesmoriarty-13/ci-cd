@@ -30,6 +30,7 @@ Schéma commun pour une requête entrante :
   "trace_id": "b3c1..."
 }
 """
+
 import json
 import logging
 import os
@@ -42,7 +43,9 @@ from datetime import datetime, timezone
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         payload = {
-            "timestamp": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+            "timestamp": datetime.now(timezone.utc).isoformat(
+                timespec="milliseconds"
+            ),
             "level": record.levelname,
         }
         if isinstance(record.msg, dict):
@@ -68,22 +71,40 @@ def new_trace_id() -> str:
     return uuid.uuid4().hex
 
 
-def log_inbound_request(logger: logging.Logger, service_name: str, method: str,
-                         path: str, status_code: int, latency_ms: float, trace_id: str) -> None:
-    logger.info({
-        "service": service_name,
-        "event": "inbound_request",
-        "method": method,
-        "path": path,
-        "status_code": status_code,
-        "latency_ms": round(latency_ms, 2),
-        "trace_id": trace_id,
-    })
+def log_inbound_request(
+    logger: logging.Logger,
+    service_name: str,
+    method: str,
+    path: str,
+    status_code: int,
+    latency_ms: float,
+    trace_id: str,
+) -> None:
+    logger.info(
+        {
+            "service": service_name,
+            "event": "inbound_request",
+            "method": method,
+            "path": path,
+            "status_code": status_code,
+            "latency_ms": round(latency_ms, 2),
+            "trace_id": trace_id,
+        }
+    )
 
 
-def log_outbound_call(logger: logging.Logger, service_name: str, target_service: str,
-                       method: str, path: str, outcome: str, latency_ms: float,
-                       trace_id: str, status_code: int = None, error: str = None) -> None:
+def log_outbound_call(
+    logger: logging.Logger,
+    service_name: str,
+    target_service: str,
+    method: str,
+    path: str,
+    outcome: str,
+    latency_ms: float,
+    trace_id: str,
+    status_code: int = None,
+    error: str = None,
+) -> None:
     entry = {
         "service": service_name,
         "event": "outbound_call",

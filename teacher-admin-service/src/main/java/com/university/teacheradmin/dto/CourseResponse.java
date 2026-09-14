@@ -1,8 +1,8 @@
 package com.university.teacheradmin.dto;
 
-import com.university.teacheradmin.model.Course;
-
 import java.time.OffsetDateTime;
+
+import com.university.teacheradmin.model.Course;
 
 public class CourseResponse {
     private Long id;

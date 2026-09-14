@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="14.1.0">
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/repository/GradeRepository.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/repository/AnnouncementRepository.java">
+<error line="1" severity="warning" message="File does not end with a newline." source="com.puppycrawl.tools.checkstyle.checks.NewlineAtEndOfFileCheck"/>
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/repository/CourseRepository.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/controller/CourseController.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/controller/GradeController.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/controller/AnnouncementController.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/controller/DemoController.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/config/CorsConfig.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/config/RequestLoggingFilter.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/TeacherAdminServiceApplication.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/model/Course.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/model/Announcement.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/model/Grade.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/dto/ErrorResponse.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/dto/GradeCreateRequest.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/dto/CourseCreateRequest.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/dto/AnnouncementCreateRequest.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/dto/CourseResponse.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/exception/GlobalExceptionHandler.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/exception/ConflictException.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/exception/ResourceNotFoundException.java">
+</file>
+<file name="/workspaces/university-env-development/teacher-admin-service/src/main/java/com/university/teacheradmin/logging/StructuredLogger.java">
+<error line="71" column="5" severity="warning" message="&apos;METHOD_DEF&apos; should be separated from previous line." source="com.puppycrawl.tools.checkstyle.checks.whitespace.EmptyLineSeparatorCheck"/>
+</file>
+</checkstyle>

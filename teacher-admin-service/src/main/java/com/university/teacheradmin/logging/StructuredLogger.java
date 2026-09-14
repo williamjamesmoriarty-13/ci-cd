@@ -1,12 +1,12 @@
 package com.university.teacheradmin.logging;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Logger JSON structuré, un objet JSON par ligne (JSON Lines), au format
@@ -48,27 +48,26 @@ public class StructuredLogger {
     }
 
     private String toJsonString(Map<String, Object> map) {
-        StringBuilder sb = new StringBuilder("{");
+        StringBuilder sb = new StringBuilder('{');      
         boolean first = true;
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             if (!first) {
-                sb.append(",");
+                sb.append(',');                        
             }
             first = false;
-            sb.append("\"").append(escape(entry.getKey())).append("\":");
+            sb.append('"').append(escape(entry.getKey())).append("\":");
             Object value = entry.getValue();
             if (value == null) {
-                sb.append("null");
+                sb.append("null");                      
             } else if (value instanceof Number || value instanceof Boolean) {
                 sb.append(value);
             } else {
-                sb.append("\"").append(escape(String.valueOf(value))).append("\"");
+                sb.append('"').append(escape(String.valueOf(value))).append('"');   
             }
         }
-        sb.append("}");
+        sb.append('}');                                 
         return sb.toString();
     }
-
     private String escape(String value) {
         return value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", " ");
     }

@@ -1,0 +1,4 @@
+Sep 14, 2026 12:36:14 PM org.apache.lucene.store.MemorySegmentIndexInputProvider <init>
+INFO: Using MemorySegmentIndexInput and native madvise support with Java 21 or later; to disable start with -Dorg.apache.lucene.store.MMapDirectory.enableMemorySegments=false
+Sep 14, 2026 12:36:14 PM org.apache.lucene.internal.vectorization.VectorizationProvider lookup
+WARNING: You are running with Java 23 or later. To make full use of the Vector API, please update Apache Lucene.

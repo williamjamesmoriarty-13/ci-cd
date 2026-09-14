@@ -4,7 +4,9 @@ import os
 def _require_env(name: str) -> str:
     value = os.environ.get(name)
     if value is None or value == "":
-        raise RuntimeError(f"Variable d'environnement obligatoire manquante: {name}")
+        raise RuntimeError(
+            f"Variable d'environnement obligatoire manquante: {name}"
+        )
     return value
 
 
@@ -18,9 +20,7 @@ class Config:
     DB_NAME = _require_env("DB_NAME")
     DB_SCHEMA = os.environ.get("DB_SCHEMA", "enrollment_schema")
 
-    SQLALCHEMY_DATABASE_URI = (
-        f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-    )
+    SQLALCHEMY_DATABASE_URI = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"  # noqa: E261,E501
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
         "pool_recycle": 280,

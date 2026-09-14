@@ -1,26 +1,45 @@
-# Dockerfile.dev — Flask (student-service ou enrollment-service)
-# Mettre ce fichier dans le dossier du service : student-service/Dockerfile.dev
-# (idem pour enrollment-service/Dockerfile.dev)
-#
-# Pas de multi-stage : on veut juste un rechargement automatique.
-# Le code source est monté via volume dans docker-compose.dev.yml.
+# ============================================================
+# Stage 1 : Build des dépendances
+# ============================================================
+FROM cgr.dev/chainguard/python:latest-dev AS builder
 
-FROM python:3.12-slim
+WORKDIR /build
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        gcc \
-        libpq-dev \
-        libpq5 \
-        curl \
-    && rm -rf /var/lib/apt/lists/*
+# La variante -dev fournit un shell + pip + apk (gestionnaire Wolfi)
+# gcc/libpq-dev deviennent :
+USER root
+RUN apk add --no-cache build-base postgresql-dev
+
+COPY requirements.txt .
+
+RUN python -m pip install \
+        --no-cache-dir \
+        --upgrade pip \
+    && python -m pip install \
+        --no-cache-dir \
+        --prefix=/install \
+        --ignore-installed \
+        -r requirements.txt
+
+# ============================================================
+# Stage 2 : Runtime
+# ============================================================
+FROM cgr.dev/chainguard/python:latest
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONPATH="/usr/local/lib/python3.14/site-packages:${PYTHONPATH}"
 
 WORKDIR /app
 
-# On copie d'abord requirements pour profiter du cache Docker
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY --from=builder /install /usr/local
+COPY app ./app
+COPY migrations ./migrations
+COPY alembic.ini wsgi.py entrypoint.py ./
 
-# Le reste du code est injecté par le volume (pas besoin de COPY . .)
-# Flask --debug recharge automatiquement quand un fichier .py change.
+USER nonroot
 
 EXPOSE 5001
+
+ENTRYPOINT ["python", "entrypoint.py"]

@@ -1,23 +1,37 @@
-# Dockerfile.dev — React/Vite
-# Mettre ce fichier dans : frontend/Dockerfile.dev
-#
-# Node tourne dans le conteneur — tu n'as pas besoin de l'installer sur ton PC.
-# Le dossier frontend/ est monté en volume → HMR fonctionne immédiatement.
+# ---------- Stage 1 : build ----------
+FROM node:20-alpine AS builder
 
-FROM node:20-alpine
+WORKDIR /build
 
-WORKDIR /app
-
-# Copie package.json pour installer les dépendances au build de l'image.
-# node_modules reste dans le conteneur (volume anonyme dans compose),
-# donc jamais sur ton PC (évite les conflits Linux/Windows).
 COPY package.json package-lock.json* ./
-RUN npm install --no-audit --no-fund
+RUN apk update && apk upgrade --no-cache && \
+    npm ci --no-audit --no-fund
 
-# Le code source arrive via le volume monté par docker-compose.dev.yml.
-# Pas de COPY . . ici.
+COPY . .
 
-EXPOSE 3000
+ARG VITE_STUDENT_SERVICE_URL="/api/students"
+ARG VITE_TEACHER_ADMIN_SERVICE_URL="/api/teachers"
+ARG VITE_ENROLLMENT_SERVICE_URL="/api/enrollments"
 
-# --host 0.0.0.0 obligatoire pour que le port soit accessible depuis l'hôte
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+ENV VITE_STUDENT_SERVICE_URL=$VITE_STUDENT_SERVICE_URL
+ENV VITE_TEACHER_ADMIN_SERVICE_URL=$VITE_TEACHER_ADMIN_SERVICE_URL
+ENV VITE_ENROLLMENT_SERVICE_URL=$VITE_ENROLLMENT_SERVICE_URL
+
+RUN npm run build
+
+# ---------- Stage 2 : nginx non-root ----------
+FROM nginxinc/nginx-unprivileged:1.27-alpine
+
+USER root
+RUN apk update && apk upgrade --no-cache && \
+    rm -rf /var/cache/apk/*
+USER 101
+
+# Fichier par défaut pour build standard (K8s / Ingress)
+ARG NGINX_CONFIG=nginx.conf
+
+COPY --from=builder /build/dist /usr/share/nginx/html
+# Copie le fichier désigné par la variable ARG
+COPY ${NGINX_CONFIG} /etc/nginx/conf.d/default.conf
+
+EXPOSE 8080

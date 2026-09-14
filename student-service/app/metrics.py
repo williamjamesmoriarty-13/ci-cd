@@ -15,10 +15,11 @@ Aucune logique métier existante n'est modifiée : ce module est purement
 additif (avant_request/after_request internes à prometheus_flask_exporter,
 indépendants de ceux déjà définis dans app/__init__.py).
 """
+
 from prometheus_client import Counter
 from prometheus_flask_exporter import PrometheusMetrics
 
-# Compteur des appels SORTANTS (vers teacher-admin-service / enrollment-service).
+# Compteur des appels SORTANTS (vers teacher-admin-service / enrollment-service). # noqa: E501
 # Label "outcome" aligné sur le champ "outcome" des logs JSON structurés
 # (logging_utils.py) : "success" | "failure".
 OUTBOUND_CALLS = Counter(
@@ -34,6 +35,8 @@ def init_metrics(app):
     /students/<int:student_id> reste un seul label, pas un par id)."""
     metrics = PrometheusMetrics(app, group_by="url_rule", path="/metrics")
     metrics.info(
-        "student_service_info", "Informations statiques du service", version="1.0.0"
+        "student_service_info",
+        "Informations statiques du service",
+        version="1.0.0",
     )
     return metrics

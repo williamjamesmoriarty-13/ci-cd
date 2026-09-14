@@ -23,6 +23,7 @@ def create_app() -> Flask:
     app.extensions["structured_logger"] = logger
 
     from .routes import bp as enrollments_bp
+
     app.register_blueprint(enrollments_bp)
 
     @app.before_request
@@ -32,10 +33,17 @@ def create_app() -> Flask:
 
     @app.after_request
     def _log_request(response):
-        latency_ms = (time.perf_counter() - g.get("start_time", time.perf_counter())) * 1000
+        latency_ms = (
+            time.perf_counter() - g.get("start_time", time.perf_counter())
+        ) * 1000
         log_inbound_request(
-            logger, Config.SERVICE_NAME, request.method, request.path,
-            response.status_code, latency_ms, g.get("trace_id", "unknown"),
+            logger,
+            Config.SERVICE_NAME,
+            request.method,
+            request.path,
+            response.status_code,
+            latency_ms,
+            g.get("trace_id", "unknown"),
         )
         response.headers["X-Trace-Id"] = g.get("trace_id", "unknown")
         return response
@@ -50,7 +58,13 @@ def create_app() -> Flask:
 
     @app.errorhandler(Exception)
     def handle_unexpected_error(err):
-        logger.error({"service": Config.SERVICE_NAME, "event": "unhandled_exception", "error": str(err)})
+        logger.error(
+            {
+                "service": Config.SERVICE_NAME,
+                "event": "unhandled_exception",
+                "error": str(err),
+            }
+        )
         return jsonify({"error": "Erreur interne du serveur"}), 500
 
     return app
