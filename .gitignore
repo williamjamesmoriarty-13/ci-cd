@@ -8,3 +8,4 @@ target/
 *.iml
 postgres_data/
 lint/lint/
+lint/lint-reports/
