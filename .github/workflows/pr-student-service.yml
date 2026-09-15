@@ -56,7 +56,7 @@ jobs:
 
       - name: Tests unitaires
         working-directory: student-service
-        run: pytest tests/unit/student-service-test.py -v --cov=app
+        run: pytest tests/unit/student-service-test.py -v
         # Aucun service Postgres ici volontairement : si un de ces tests
         # tente une vraie connexion DB, il échouera — ce qui est le signal
         # qu'il n'est pas vraiment "unitaire" et doit être déplacé/mocké.
@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16                          # <-- aligne cette version sur celle de ton docker-compose.yml
+        image: postgres:16-alpine
         env:
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
@@ -79,7 +79,15 @@ jobs:
           --health-timeout=5s
           --health-retries=5
     env:
-      DATABASE_URL: postgresql://test:test@localhost:5432/student_test
+      # Connexion à la base PostgreSQL de test
+      DB_USER: test
+      DB_PASSWORD: test
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: student_test
+      # Valeurs dummy obligatoires uniquement pour passer la configuration en CI
+      TEACHER_ADMIN_SERVICE_URL: http://localhost:5001
+      ENROLLMENT_SERVICE_URL: http://localhost:5002
     steps:
       - uses: actions/checkout@v4
 
@@ -102,9 +110,7 @@ jobs:
         run: |
           alembic downgrade -1
           alembic upgrade head
-        # Attrape les migrations qui montent mais ne redescendent pas proprement —
-        # utile avant un vrai rollback en prod.
-
+          
   docker-build:
     name: Build image + scan Trivy
     needs: [unit-tests, migration-check]
