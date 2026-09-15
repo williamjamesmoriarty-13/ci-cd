@@ -4,7 +4,7 @@ name: MPR — student-service
 # bump du tag dans university-helm (branche CI_Confirmed).
 # AUCUN déploiement ici : ArgoCD surveille le repo Helm et synchronise
 # lui-même. Les migrations DB ne sont pas ici non plus — hook Helm
-# pre-upgrade côté chart, exécuté par le cluster au moment du déploiement
+# pre-upgrade côté chart, exécuté par le cluster au moment du déploieme
 
 on:
   push:
@@ -12,45 +12,112 @@ on:
     paths:
       - 'student-service/**'
       - '.github/workflows/mpr-student-service.yml'
+ 
 concurrency:
   group: mpr-student-service-${{ github.sha }}
   cancel-in-progress: false
-
+ 
 permissions:
   contents: read
-
+ 
 jobs:
   e2e:
     name: Tests end-to-end (stack complète)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Préparer le fichier .env
+ 
+      - name: Build + up docker-compose + tests e2e
+        run: ./scripts/e2e-test.sh
+        # Seul gate avant build/push. Se redéclenche à l'identique si un
+        # autre service est mergé en même temps (chaque pipeline MPR le
+        # relance) — accepté pour rester simple, à revoir si la fréquence
+        # de merge rend ça coûteux.
+ 
+  build-scan-push:
+    name: Build, scan Trivy, push Docker Hub
+    needs: e2e
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.vars.outputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v4
+ 
+      - name: Déterminer le tag d'image
+        id: vars
+        run: echo "image_tag=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+        # Tag = SHA court du commit. Ton values.yaml a un commentaire
+        # "latest à remplacer par des tags versionnés avant rollback" —
+        # le SHA est déjà un tag explicite et traçable, cohérent avec ça.
+        # Si tu préfères un versioning sémantique (v1.2.3), remplace
+        # cette ligne par ta propre logique de bump.
+ 
+      - name: Build de l'image
         run: |
-          cp .env.example .env
-          ls -a
-          cat .env
-      - name: test
-        run: docker compose up --build -d || true
-      - name: Attente de l'initialisation des conteneurs
-        run: sleep 20
-
-      - name: Afficher l'état de tous les conteneurs
-        if: always()
-        run: docker compose ps -a
-
-      - name: Afficher les logs de teacher-admin-service
-        if: always()
+          docker build -f student-service/Dockerfile \
+            -t docker.io/darbi/university-student-service:${{ steps.vars.outputs.image_tag }} \
+            student-service/
+ 
+      - name: Scan de vulnérabilités — Trivy (avant push)
+        uses: aquasecurity/trivy-action@v0.36.0   # vérifie toi-même la dernière release
+        with:
+          image-ref: docker.io/darbi/university-student-service:${{ steps.vars.outputs.image_tag }}
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
+        # Pas redondant avec le scan PR : nouveau build à partir du commit
+        # mergé, et la base Trivy change tous les jours. C'est le vrai
+        # verrou avant que l'image parte en registre.
+ 
+      - name: Connexion à Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          # Token d'accès Docker Hub (Account Settings > Security > New
+          # Access Token) — jamais ton mot de passe de compte.
+ 
+      - name: Push vers Docker Hub
+        run: docker push docker.io/darbi/university-student-service:${{ steps.vars.outputs.image_tag }}
+ 
+  update-helm-repo:
+    name: Bump du tag dans university-helm (branche CI_Confirmed)
+    needs: build-scan-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone du repo Helm
+        run: git clone https://github.com/RehozoedArbi/university-helm.git
+ 
+      - name: Connexion à GitHub (authentification pour le push)
+        working-directory: university-helm
         run: |
-          echo "=================================================="
-          echo "    LOGS DU SERVICE TEACHER-ADMIN-SERVICE        "
-          echo "=================================================="
-          docker compose logs teacher-admin-service
-
-      - name: Afficher les logs de la base de données
-        if: always()
+          git remote set-url origin "https://x-access-token:${{ secrets.HELM_REPO_TOKEN }}@github.com/RehozoedArbi/university-helm.git"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # HELM_REPO_TOKEN : PAT (fine-grained, écriture limitée à CE
+          # repo) ou token d'une GitHub App dédiée. Jamais le GITHUB_TOKEN
+          # par défaut, qui n'a pas accès à university-helm.
+ 
+      - name: Installer yq
         run: |
-          echo "=================================================="
-          echo "            LOGS DU SERVICE POSTGRES              "
-          echo "=================================================="
-          docker compose logs postgres
+          sudo curl -sSL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+ 
+      - name: Modifier le tag studentService dans values.yaml
+        working-directory: university-helm
+        run: |
+          yq -i '.studentService.tag = "${{ needs.build-scan-push.outputs.image_tag }}"' values.yaml
+          # <-- adapte le chemin si values.yaml n'est pas à la racine du repo
+ 
+      - name: Push vers la branche CI_Confirmed
+        working-directory: university-helm
+        run: |
+          git checkout -B CI_Confirmed
+          git add values.yaml
+          git commit -m "chore(student-service): bump image to ${{ needs.build-scan-push.outputs.image_tag }}"
+          git push origin CI_Confirmed --force-with-lease
+          # force-with-lease : suppose que CI_Confirmed reflète toujours
+          # le dernier merge, pas un historique cumulatif de déploiements.
+          # Si tu veux garder chaque bump comme commit distinct dans
+          # l'historique de la branche, retire --force-with-lease.
+ 
