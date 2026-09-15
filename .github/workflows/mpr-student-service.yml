@@ -4,7 +4,7 @@ name: MPR — student-service
 # bump du tag dans university-helm (branche CI_Confirmed).
 # AUCUN déploiement ici : ArgoCD surveille le repo Helm et synchronise
 # lui-même. Les migrations DB ne sont pas ici non plus — hook Helm
-# pre-upgrade côté chart, exécuté par le cluster au moment du déploiement.
+# pre-upgrade côté chart, exécuté par le cluster au moment du déploiement
 
 on:
   push:

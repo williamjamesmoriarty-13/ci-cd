@@ -49,7 +49,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 10s
+      start_period: 30s
 
   student-service:
     build:
@@ -84,7 +84,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 15s
+      start_period: 30s
 
   teacher-admin-service:
     build:
@@ -115,7 +115,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 15
-      start_period: 120s
+      start_period: 100s
 
   enrollment-service:
     build:
