@@ -6,7 +6,6 @@ dist/
 target/
 .idea/
 *.iml
-postgres_data/
 lint/lint/
 lint/lint-reports/
 enrollment-service/.venv/
