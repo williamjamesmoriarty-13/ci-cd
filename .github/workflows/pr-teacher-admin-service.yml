@@ -99,7 +99,7 @@ jobs:
           DB_PORT: '5432'
           DB_NAME: university_db
           DB_SCHEMA: teacher-admin_schema
-        run: ./mvnw spring-boot:run
+        run: mvn spring-boot:run
 
 
   docker-build:
