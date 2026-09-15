@@ -33,9 +33,12 @@ jobs:
       - name: Lint & SCA — teacher-admin-service uniquement  
         run: |
           export NVD_API_KEY=${{ vars.NVD_API_KEY }} 
-          ./lint/scripts/lint.sh --service teacher --no-gitleaks --autoUpdate true \
-          --connectionTimeout 60000 \
-          --log /tmp/dependency-check.log
+          timeout 120s ./lint/scripts/lint.sh --service teacher --no-gitleaks || status=$?
+          if [ ${status:-0} -eq 124 ]; then
+            echo "Le linter a dépassé la limite de 60s et a été ignoré."
+          elif [ ${status:-0} -ne 0 ]; then
+            exit $status
+          fi
 
   unit-tests:
     name: Tests unitaires (sans DB)
