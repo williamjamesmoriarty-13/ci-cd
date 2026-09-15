@@ -1,0 +1,71 @@
+name: PR — frontend
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/pr-frontend.yml'
+
+concurrency:
+  group: pr-frontend-${{ github.head_ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build + audit dépendances
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'          # <-- vérifie que ça correspond à ton Dockerfile (FROM node:XX), je n'ai pas cette info
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Installer les dépendances
+        working-directory: frontend
+        run: npm ci
+
+      - name: Audit des dépendances
+        working-directory: frontend
+        run: npm audit --audit-level=high
+        continue-on-error: true
+        # continue-on-error volontaire pour l'instant : sans lockfile suivi
+        # régulièrement, un audit strict casse la CI sur des CVE que tu ne
+        # contrôles pas encore. Retire cette ligne dès que tu veux que ce
+        # soit bloquant.
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+        # Pas de lint ni de tests : aucun des deux n'est configuré dans
+        # package.json (pas de script "lint", pas d'ESLint en
+        # devDependency, pas de Vitest/Jest). Le build attrape déjà les
+        # erreurs d'import/JSX/syntaxe — c'est la seule vraie validation
+        # disponible aujourd'hui. Ajouter ESLint coûte 10 min et attrape
+        # des bugs qu'aucun build ne voit (variable inutilisée, hook mal
+        # utilisé, etc.) — vaut le coup à un moment, mais pas fait ici
+        # sans que tu le demandes.
+
+  docker-build:
+    name: Build image + scan Trivy
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build de l'image (validation uniquement — pas de push en PR)
+        run: docker build -f frontend/Dockerfile -t frontend:pr-${{ github.event.pull_request.number }} frontend/
+
+      - name: Scan de vulnérabilités — Trivy
+        uses: aquasecurity/trivy-action@v0.36.0   # vérifie toi-même la dernière release
+        with:
+          image-ref: frontend:pr-${{ github.event.pull_request.number }}
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
