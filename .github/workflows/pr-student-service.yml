@@ -124,6 +124,8 @@ jobs:
           DB_PORT: '5432'
           DB_NAME: university_db
           DB_SCHEMA: student_schema
+          TEACHER_ADMIN_SERVICE_URL: http://localhost:5001
+          ENROLLMENT_SERVICE_URL: http://localhost:5002
         run: alembic upgrade head
  
       - name: Vérifier la réversibilité (downgrade puis re-upgrade)
