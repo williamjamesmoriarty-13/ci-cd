@@ -30,8 +30,19 @@ jobs:
           cp .env.example .env
           ls -a
           cat .env
-      - name: test
-        run: docker compose up --build -d || true
+      - name: Démarrer les services
+        run: docker compose up -d --build
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: university_db
+          STUDENT_DB_USER: student_user
+          STUDENT_DB_PASSWORD: student_pass
+          TEACHER_ADMIN_DB_USER: teacher_user
+          TEACHER_ADMIN_DB_PASSWORD: teacher_pass
+          ENROLLMENT_DB_USER: enrollment_user
+          ENROLLMENT_DB_PASSWORD: enrollment_pass
+          
       - name: Attente de l'initialisation des conteneurs
         run: sleep 20
 
