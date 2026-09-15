@@ -27,6 +27,9 @@ jobs:
           distribution: 'temurin'
           java-version: '21'                        # gardes aligné avec ton Java ≥21
           cache: 'maven'
+          
+      - name: voir NVD
+        run: echo ${{ secrets.NVD_API_KEY }}   
 
       - name: Lint & SCA — teacher-admin-service uniquement
         env:
