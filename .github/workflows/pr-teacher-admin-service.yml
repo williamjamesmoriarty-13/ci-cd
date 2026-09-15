@@ -29,8 +29,8 @@ jobs:
           cache: 'maven'
 
       - name: mvn test au racine du service
-          working-directory: teacher-admin-service
-          run: mvn --no-transfer-progress test
+        working-directory: teacher-admin-service
+        run: mvn --no-transfer-progress test
 
   unit-tests:
     name: Tests unitaires (sans DB)
