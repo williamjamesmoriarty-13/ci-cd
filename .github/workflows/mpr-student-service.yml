@@ -11,7 +11,7 @@ on:
     branches: [main]
     paths:
       - 'student-service/**'
-
+      - '.github/workflows/mpr-student-service.yml'
 concurrency:
   group: mpr-student-service-${{ github.sha }}
   cancel-in-progress: false
