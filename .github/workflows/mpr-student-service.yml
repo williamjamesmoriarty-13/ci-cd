@@ -25,29 +25,87 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Lancer les services avec Docker Compose
-        # continue-on-error force le pipeline à continuer même si le healthcheck échoue au `docker compose up`
-        continue-on-error: true
-        run: |
-          docker compose up --build -d || true
-
-      - name: Attendre le démarrage des services
-        run: |
-          echo "Attente de 30 secondes pour laisser le temps aux services de s'initialiser..."
-          sleep 30
-
-      - name: Vérifier l'état des conteneurs
-        run: |
-          docker compose ps -a
-
-      - name: Afficher les logs du service teacher-admin-service
-        # S'exécute TOUJOURS, peu importe si les étapes précédentes ont échoué ou réussi
-        if: always()
-        run: |
-          echo "=================================================="
-          echo "    LOGS DU SERVICE TEACHER-ADMIN-SERVICE        "
-          echo "=================================================="
-          docker compose logs teacher-admin-service
+      - name: Préparer le fichier .env
+        run: cp .env.example .env
       - name: Build + up docker-compose + tests e2e
         run: ./scripts/e2e-test.sh
 
+  build-scan-push:
+    name: Build, scan Trivy, push Docker Hub
+    needs: e2e
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.vars.outputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Déterminer le tag d'image
+        id: vars
+        run: echo "image_tag=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+        # Tag = SHA court du commit. Ton values.yaml a un commentaire
+        # "latest à remplacer par des tags versionnés avant rollback" —
+        # le SHA est déjà un tag explicite et traçable, cohérent avec ça.
+        # Si tu préfères un versioning sémantique (v1.2.3), remplace
+        # cette ligne par ta propre logique de bump.
+
+      - name: Build de l'image
+        run: |
+          docker build -f student-service/Dockerfile \
+            -t docker.io/darbi/university-student-service:${{ steps.vars.outputs.image_tag }} \
+            student-service/
+
+      - name: Scan de vulnérabilités — Trivy (avant push)
+        uses: aquasecurity/trivy-action@v0.36.0   # vérifie toi-même la dernière release
+        with:
+          image-ref: docker.io/darbi/university-student-service:${{ steps.vars.outputs.image_tag }}
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
+        # Pas redondant avec le scan PR : nouveau build à partir du commit
+        # mergé, et la base Trivy change tous les jours. C'est le vrai
+        # verrou avant que l'image parte en registre.
+
+      - name: Connexion à Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          # Token d'accès Docker Hub (Account Settings > Security > New
+          # Access Token) — jamais ton mot de passe de compte.
+
+      - name: Push vers Docker Hub
+        run: docker push docker.io/darbi/university-student-service:${{ steps.vars.outputs.image_tag }}
+
+  update-helm-repo:
+    name: Bump du tag dans university-helm (branche CI_Confirmed)
+    needs: build-scan-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone du repo Helm
+        run: git clone https://github.com/RehozoedArbi/university-helm.git
+
+      - name: Connexion à GitHub (authentification pour le push)
+        working-directory: university-helm
+        run: |
+          git remote set-url origin "https://x-access-token:${{ secrets.HELM_REPO_TOKEN }}@github.com/RehozoedArbi/university-helm.git"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # HELM_REPO_TOKEN : PAT (fine-grained, écriture limitée à CE
+          # repo) ou token d'une GitHub App dédiée. Jamais le GITHUB_TOKEN
+          # par défaut, qui n'a pas accès à university-helm.
+
+      - name: Installer yq
+        run: |
+          sudo curl -sSL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+      
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.HELM_REPO_TOKEN }}
+          commit-message: "chore(student-service): bump image to ${{ needs.build-scan-push.outputs.image_tag }}"
+          branch: CI_Confirmed
+          delete-branch: true
+          title: "chore(student-service): bump image tag"
+          body: "Automated PR to update image tag to ${{ needs.build-scan-push.outputs.image_tag }}"
+          base: main
