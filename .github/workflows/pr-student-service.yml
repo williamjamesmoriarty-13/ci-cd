@@ -4,8 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'student-service/**'
-      - 'lint/**'                                  # config + script de lint partagés
+      - 'student-service/**'                       
       - '.github/workflows/pr-student-service.yml'
 
 concurrency:
