@@ -28,6 +28,7 @@ services:
       TEACHER_ADMIN_DB_PASSWORD: ${TEACHER_ADMIN_DB_PASSWORD}
       ENROLLMENT_DB_USER: ${ENROLLMENT_DB_USER}
       ENROLLMENT_DB_PASSWORD: ${ENROLLMENT_DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
