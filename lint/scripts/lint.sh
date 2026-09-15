@@ -452,7 +452,7 @@ run_teacher_service() {
             ${NVD_API_ARGS} \
             --no-transfer-progress \
             -q > "${report_base}/dependency-check.log" 2>&1; then
-        pass "OWASP Dependency Check — aucune CVE ≥ 7.0"
+        pass "OWASP Dependency Check — aucune CVE ≥ 9.8"
         echo -e "  ${GREEN}→ Rapport HTML : ${dc_report}/dependency-check-report.html${NC}"
     else
         if grep -q "CVE" "${report_base}/dependency-check.log" 2>/dev/null; then

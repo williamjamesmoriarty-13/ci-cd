@@ -1,7 +1,7 @@
 name: PR — enrollment-service
 
 on:
-  push:
+  pull_request:
     branches: [main]
     paths:
       - 'enrollment-service/**'

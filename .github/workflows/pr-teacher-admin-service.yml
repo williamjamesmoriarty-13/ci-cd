@@ -1,7 +1,7 @@
 name: PR — teacher-admin-service
 
 on:
-  push:
+  pull_request:
     branches: [main]
     paths:
       - 'teacher-admin-service/**'
