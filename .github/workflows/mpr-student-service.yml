@@ -64,5 +64,5 @@ jobs:
           echo "=================================================="
           echo "            LOGS DU SERVICE POSTGRES              "
           echo "=================================================="
-          docker compose exec postgres psql -U $POSTGRES_USER -d $POSTGRES_DB -c "\dt teacher_admin_schema.*"
+          docker compose exec postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "\dt teacher_admin_schema.*"'
           docker compose logs postgres
