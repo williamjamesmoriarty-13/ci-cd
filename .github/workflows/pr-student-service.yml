@@ -2,7 +2,7 @@ name: PR — student-service
 
 on:
   pull_request:
-    branches: [CI_TEST]
+    branches: [main]
     paths:
       - 'student-service/**'                       
       - '.github/workflows/pr-student-service.yml'
