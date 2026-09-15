@@ -72,8 +72,8 @@ jobs:
             -e POSTGRES_USER=postgres \
             -e POSTGRES_PASSWORD=postgres \
             -e POSTGRES_DB=university_db \
-            -e teacher-admin_DB_USER=teacher-admin_app \
-            -e teacher-admin_DB_PASSWORD=teacher-admin_app_pwd \
+            -e STUDENT_DB_USER=student_app \
+            -e STUDENT_DB_PASSWORD=student_app_pwd \
             -e TEACHER_ADMIN_DB_USER=teacher_admin_app \
             -e TEACHER_ADMIN_DB_PASSWORD=teacher_admin_app_pwd \
             -e ENROLLMENT_DB_USER=enrollment_app \
