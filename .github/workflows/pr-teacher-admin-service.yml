@@ -27,14 +27,14 @@ jobs:
           distribution: 'temurin'
           java-version: '21'                        # gardes aligné avec ton Java ≥21
           cache: 'maven'
-          
-      - name: voir NVD
+
+      - name: voir NVD qj
         run: echo ${{ secrets.NVD_API_KEY }}   
 
-      - name: Lint & SCA — teacher-admin-service uniquement
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}   
-        run: ./lint/scripts/lint.sh --service teacher --no-gitleaks
+      - name: Lint & SCA — teacher-admin-service uniquement  
+        run: |
+          export NVD_API_KEY=${{ secrets.NVD_API_KEY }} 
+          ./lint/scripts/lint.sh --service teacher --no-gitleaks
 
   unit-tests:
     name: Tests unitaires (sans DB)
