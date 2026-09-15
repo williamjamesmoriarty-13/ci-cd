@@ -1,0 +1,126 @@
+name: PR — teacher-admin-service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'teacher-admin-service/**'
+      - 'lint/**'
+      - '.github/workflows/pr-teacher-admin-service.yml'
+
+concurrency:
+  group: pr-teacher-admin-service-${{ github.head_ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Checkstyle, PMD, OWASP Dependency Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'                        # garde aligné avec ton Java ≥21
+          cache: 'maven'
+
+      - name: Lint & SCA — teacher-admin-service uniquement
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}    # à créer dans Settings > Secrets, sinon dependency-check est très lent
+        run: ./lint/scripts/lint.sh --service teacher --no-gitleaks
+
+  unit-tests:
+    name: Tests unitaires (sans DB)
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: mvn test au racine du service
+        working-directory: teacher-admin-service
+        run: mvn test
+        # Aucun service Postgres ici volontairement : si un test échoue
+        # faute de DB, il n'est pas vraiment unitaire — mocke-le ou
+        # déplace-le en intégration.
+
+  migration-check:
+    name: Vérification des migrations
+    needs: lint
+    runs-on: ubuntu-latest
+    # PAS de bloc `services:` ici : les service containers démarrent AVANT
+    # le checkout du repo, donc un volume pointant vers postgres/init/
+    # serait vide au démarrage. On lance Postgres nous-mêmes, après
+    # checkout, pour que le vrai 01-init-schemas.sh tourne comme en local.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Démarrer Postgres avec le vrai script d'init
+        run: |
+          docker run -d --name pg-ci \
+            -p 5432:5432 \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=university_db \
+            -e teacher-admin_DB_USER=teacher-admin_app \
+            -e teacher-admin_DB_PASSWORD=teacher-admin_app_pwd \
+            -e TEACHER_ADMIN_DB_USER=teacher_admin_app \
+            -e TEACHER_ADMIN_DB_PASSWORD=teacher_admin_app_pwd \
+            -e ENROLLMENT_DB_USER=enrollment_app \
+            -e ENROLLMENT_DB_PASSWORD=enrollment_app_pwd \
+            -v "${{ github.workspace }}/postgres/init:/docker-entrypoint-initdb.d" \
+            postgres:16-alpine
+          # ^ REMPLACE POSTGRES_DB et les 6 identifiants par les vraies
+          # valeurs de ton docker-compose.yml.
+
+      - name: Attendre que Postgres soit prêt
+        run: |
+          for i in {1..15}; do
+            docker exec pg-ci pg_isready -U postgres && break
+            sleep 2
+          done
+
+      - name: Appliquer les migrations
+        working-directory: teacher-admin-service
+        env:
+          DB_USER: teacher-admin_app
+          DB_PASSWORD: teacher-admin_app_pwd
+          DB_HOST: localhost
+          DB_PORT: '5432'
+          DB_NAME: university_db
+          DB_SCHEMA: teacher-admin_schema
+        run: ./mvnw spring-boot:run
+
+
+  docker-build:
+    name: Build image + scan Trivy
+    needs: [unit-tests, migration-check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build de l'image (validation uniquement — pas de push en PR)
+        run: docker build -f teacher-admin-service/Dockerfile -t teacher-admin-service:pr-${{ github.event.pull_request.number }} teacher-admin-service/
+
+      - name: Scan de vulnérabilités — Trivy
+        uses: aquasecurity/trivy-action@v0.36.0   # vérifie toi-même la dernière release avant de committer
+        with:
+          image-ref: teacher-admin-service:pr-${{ github.event.pull_request.number }}
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
