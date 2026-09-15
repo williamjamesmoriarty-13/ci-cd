@@ -115,7 +115,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 15
-      start_period: 30s
+      start_period: 120s
 
   enrollment-service:
     build:

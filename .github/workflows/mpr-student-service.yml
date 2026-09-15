@@ -43,7 +43,7 @@ jobs:
         run: echo "image_tag=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
         # Tag = SHA court du commit. Ton values.yaml a un commentaire
         # "latest à remplacer par des tags versionnés avant rollback" —
-        # le SHA est déjà un tag explicite et traçable, cohérent avec ça.
+        # le SHA est déjà un tag explicite et traçable, cohérent avec ça
         # Si tu préfères un versioning sémantique (v1.2.3), remplace
         # cette ligne par ta propre logique de bump
 
