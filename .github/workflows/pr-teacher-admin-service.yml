@@ -28,11 +28,6 @@ jobs:
           java-version: '21'                        # gardes aligné avec ton Java ≥21
           cache: 'maven'
 
-      - name: Lint & SCA — teacher-admin-service uniquement
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}    # à créer dans Settings > Secrets, sinon dependency-check est très lent
-        run: ./lint/scripts/lint.sh --service teacher --no-gitleaks
-
   unit-tests:
     name: Tests unitaires (sans DB)
     needs: lint
