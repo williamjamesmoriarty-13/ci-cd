@@ -129,13 +129,7 @@ services:
         dockerfile: Dockerfile.dev
       restart: unless-stopped
       # On utilise spring-boot:run proprement. Devtools détectera target/classes mis à jour par le watcher.
-      command: |
-          mvn flyway:migrate \
-            -Dflyway.url="jdbc:postgresql://localhost:5432/university_db?currentSchema=teacher_admin_schema" \
-            -Dflyway.user=teacher_admin_app \
-            -Dflyway.password=teacher_admin_app_pwd \
-            -Dflyway.schemas=teacher_admin_schema         
-          mvn spring-boot:run -Dspring-boot.run.addResources=true
+      command: mvn spring-boot:run -Dspring-boot.run.addResources=true
       environment:
         DB_USER: ${TEACHER_ADMIN_DB_USER}
         DB_PASSWORD: ${TEACHER_ADMIN_DB_PASSWORD}
