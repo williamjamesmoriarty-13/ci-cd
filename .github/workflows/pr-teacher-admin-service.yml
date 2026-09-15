@@ -29,11 +29,11 @@ jobs:
           cache: 'maven'
 
       - name: voir NVD qj
-        run: echo ${{ secrets.NVD_API_KEY }}   
+        run: echo ${{ variables.NVD_API_KEY }}   
 
       - name: Lint & SCA — teacher-admin-service uniquement  
         run: |
-          export NVD_API_KEY=${{ secrets.NVD_API_KEY }} 
+          export NVD_API_KEY=${{ variables.NVD_API_KEY }} 
           ./lint/scripts/lint.sh --service teacher --no-gitleaks
 
   unit-tests:
