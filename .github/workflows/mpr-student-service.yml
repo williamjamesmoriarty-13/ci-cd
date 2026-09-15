@@ -113,7 +113,7 @@ jobs:
         working-directory: university-helm
         run: |
           git checkout -B CI_Confirmed
-          git add values.yaml
+          git add university-app/values.yaml
           git commit -m "chore(student-service): bump image to ${{ needs.build-scan-push.outputs.image_tag }}"
           git push origin CI_Confirmed --force-with-lease
           # force-with-lease : suppose que CI_Confirmed reflète toujours
