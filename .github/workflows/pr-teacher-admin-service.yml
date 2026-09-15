@@ -28,9 +28,10 @@ jobs:
           java-version: '21'                        # gardes aligné avec ton Java ≥21
           cache: 'maven'
 
-      - name: mvn test au racine du service
-        working-directory: teacher-admin-service
-        run: mvn --no-transfer-progress test
+      - name: Lint & SCA — teacher-admin-service uniquement
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}   
+        run: ./lint/scripts/lint.sh --service teacher --no-gitleaks
 
   unit-tests:
     name: Tests unitaires (sans DB)
