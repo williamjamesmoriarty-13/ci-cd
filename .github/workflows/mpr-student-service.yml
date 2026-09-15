@@ -45,7 +45,7 @@ jobs:
         # "latest à remplacer par des tags versionnés avant rollback" —
         # le SHA est déjà un tag explicite et traçable, cohérent avec ça.
         # Si tu préfères un versioning sémantique (v1.2.3), remplace
-        # cette ligne par ta propre logique de bump.
+        # cette ligne par ta propre logique de bump
 
       - name: Build de l'image
         run: |

@@ -86,7 +86,19 @@ wait_healthy() {
     local waited=0
     info "Attente que '$service' soit healthy..."
     while [ "$waited" -lt "$max_wait" ]; do
+        # On récupère le statut
         status=$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose ps -q "$service")" 2>/dev/null)
+        
+        # Si le container a complètement crashé (exited)
+        state=$(docker inspect --format='{{.State.Status}}' "$(docker compose ps -q "$service")" 2>/dev/null)
+        if [ "$state" = "exited" ]; then
+            fail "$service s'est arrêté brutalement !"
+            echo "=== LOGS DE $service ==="
+            docker compose logs "$service"
+            FAILURES=$((FAILURES + 1))
+            return 1
+        fi
+
         if [ "$status" = "healthy" ]; then
             ok "$service est healthy (en ${waited}s)"
             return 0
@@ -94,7 +106,10 @@ wait_healthy() {
         sleep 3
         waited=$((waited + 3))
     done
+
     fail "$service n'est pas devenu healthy après ${max_wait}s"
+    echo "=== LOGS DE $service ==="
+    docker compose logs "$service"
     FAILURES=$((FAILURES + 1))
     return 1
 }
