@@ -92,14 +92,12 @@ jobs:
 
       - name: Appliquer les migrations
         working-directory: teacher-admin-service
-        env:
-          DB_USER: teacher-admin_app
-          DB_PASSWORD: teacher-admin_app_pwd
-          DB_HOST: localhost
-          DB_PORT: '5432'
-          DB_NAME: university_db
-          DB_SCHEMA: teacher-admin_schema
-        run: mvn spring-boot:run
+        run: |
+              mvn flyway:migrate \
+                  -Dflyway.url="jdbc:postgresql://localhost:5432/university_db?currentSchema=teacher_admin_schema" \
+                  -Dflyway.user=teacher_admin_app \
+                  -Dflyway.password=teacher_admin_app_pwd \
+                  -Dflyway.schemas=teacher_admin_schema
 
 
   docker-build:
