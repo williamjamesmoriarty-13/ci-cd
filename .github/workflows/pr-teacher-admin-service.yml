@@ -34,7 +34,9 @@ jobs:
       - name: Lint & SCA — teacher-admin-service uniquement  
         run: |
           export NVD_API_KEY=${{ vars.NVD_API_KEY }} 
-          ./lint/scripts/lint.sh --service teacher --no-gitleaks
+          ./lint/scripts/lint.sh --service teacher --no-gitleaks --autoUpdate true \
+          --connectionTimeout 60000 \
+          --log /tmp/dependency-check.log
 
   unit-tests:
     name: Tests unitaires (sans DB)
