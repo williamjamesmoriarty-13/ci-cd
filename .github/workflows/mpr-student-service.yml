@@ -29,4 +29,28 @@ jobs:
         run: |
           cp .env.example .env
           ls -a
-          cat .env
+          cat .
+      - name: test
+        run: docker compose up --build -d || true
+      - name: Attente de l'initialisation des conteneurs
+        run: sleep 20
+
+      - name: Afficher l'état de tous les conteneurs
+        if: always()
+        run: docker compose ps -a
+
+      - name: Afficher les logs de teacher-admin-service
+        if: always()
+        run: |
+          echo "=================================================="
+          echo "    LOGS DU SERVICE TEACHER-ADMIN-SERVICE        "
+          echo "=================================================="
+          docker compose logs teacher-admin-service
+
+      - name: Afficher les logs de la base de données
+        if: always()
+        run: |
+          echo "=================================================="
+          echo "            LOGS DU SERVICE POSTGRES              "
+          echo "=================================================="
+          docker compose logs postgres
