@@ -26,7 +26,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'          # <-- vérifie que ça correspond à ton Dockerfile
+          node-version: '20'         
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
@@ -104,11 +104,15 @@ jobs:
         # <-- si le repo devient privé un jour, remplace par un clone
         # authentifié avec un token (secrets.HELM_REPO_TOKEN)
 
-      - name: Se positionner sur CI_Confirmed
+      - name: Connexion à GitHub (authentification pour le push)
         working-directory: university-helm
         run: |
-          git fetch origin CI_Confirmed:CI_Confirmed 2>/dev/null || true
-          git checkout CI_Confirmed 2>/dev/null || git checkout -b CI_Confirmed
+          git remote set-url origin "https://x-access-token:${{ secrets.HELM_REPO_TOKEN }}@github.com/RehozoedArbi/university-helm.git"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # HELM_REPO_TOKEN : PAT (fine-grained, écriture limitée à CE
+          # repo) ou token d'une GitHub App dédiée. Jamais le GITHUB_TOKEN
+          # par défaut, qui n'a pas accès à university-helm.
 
       - name: Installer yq
         run: |
@@ -116,15 +120,14 @@ jobs:
           sudo chmod +x /usr/local/bin/yq
 
       - name: Mettre à jour le tag frontend
-        working-directory: university-helm
+        working-directory: university-helm/university-app
         run: yq -i '.frontend.tag = "${{ needs.build-scan-push.outputs.image_tag }}"' values.yaml
 
       - name: Commit + push
         working-directory: university-helm
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add values.yaml
+          git checkout -B CI_Confirmed
+          git add university-app/values.yaml
           git commit -m "chore(frontend): bump image to ${{ needs.build-scan-push.outputs.image_tag }}"
           git push origin CI_Confirmed
           # Pas de --force : grâce à la concurrency ci-dessus, ce job
