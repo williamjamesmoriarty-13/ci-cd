@@ -1,0 +1,132 @@
+name: MPR — frontend
+
+# Rôle strict : build → scan → push DockerHub → bump du tag dans le repo
+# Helm (branche CI_Confirmed). Aucun déploiement ici : ArgoCD surveille
+# le repo Helm et applique lui-même le changement.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/pr-frontend.yml'
+concurrency:
+  group: mpr-frontend-${{ github.sha }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  safety-build:
+    name: Build (garde-fou avant e2e/build image)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'          # <-- vérifie que ça correspond à ton Dockerfile
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Installer les dépendances
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+  e2e:
+    name: Tests end-to-end (stack complète)
+    needs: safety-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build + up docker-compose + tests e2e
+        run: ./scripts/e2e-test.sh
+
+  build-scan-push:
+    name: Build image, scan Trivy, push DockerHub
+    needs: e2e
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.vars.outputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Déterminer le tag d'image
+        id: vars
+        run: echo "image_tag=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Connexion DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          # DOCKERHUB_TOKEN = un Access Token DockerHub dédié (Account
+          # Settings > Security), pas ton mot de passe de compte.
+
+      - name: Build de l'image
+        run: |
+          docker build -f frontend/Dockerfile \
+            -t docker.io/darbi/university-frontend:${{ steps.vars.outputs.image_tag }} \
+            frontend/
+
+      - name: Scan de vulnérabilités — Trivy (avant push)
+        uses: aquasecurity/trivy-action@v0.36.0   # vérifie toi-même la dernière release
+        with:
+          image-ref: docker.io/darbi/university-frontend:${{ steps.vars.outputs.image_tag }}
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Push vers DockerHub
+        run: docker push docker.io/darbi/university-frontend:${{ steps.vars.outputs.image_tag }}
+
+  update-deploy-repo:
+    name: Bump du tag frontend dans le repo Helm
+    needs: build-scan-push
+    runs-on: ubuntu-latest
+    concurrency:
+      # Nom IDENTIQUE dans les 4 workflows MPR (student/enrollment/teacher/
+      # frontend) : sérialise ce job précis entre TOUS les services, peu
+      # importe le workflow d'origine. Sans ça, deux merges proches sur
+      # des services différents peuvent pousser sur CI_Confirmed en même
+      # temps et s'écraser mutuellement.
+      group: helm-deploy-repo-update
+      cancel-in-progress: false
+    steps:
+      - name: Cloner le repo Helm
+        run: git clone https://github.com/RehozoedArbi/university-helm.git
+        # <-- si le repo devient privé un jour, remplace par un clone
+        # authentifié avec un token (secrets.HELM_REPO_TOKEN)
+
+      - name: Se positionner sur CI_Confirmed
+        working-directory: university-helm
+        run: |
+          git fetch origin CI_Confirmed:CI_Confirmed 2>/dev/null || true
+          git checkout CI_Confirmed 2>/dev/null || git checkout -b CI_Confirmed
+
+      - name: Installer yq
+        run: |
+          sudo curl -sSL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Mettre à jour le tag frontend
+        working-directory: university-helm
+        run: yq -i '.frontend.tag = "${{ needs.build-scan-push.outputs.image_tag }}"' values.yaml
+
+      - name: Commit + push
+        working-directory: university-helm
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add values.yaml
+          git commit -m "chore(frontend): bump image to ${{ needs.build-scan-push.outputs.image_tag }}"
+          git push origin CI_Confirmed
+          # Pas de --force : grâce à la concurrency ci-dessus, ce job
+          # tourne toujours seul sur cette branche, donc un push normal
+          # suffit et garde l'historique propre (un commit par bump).
