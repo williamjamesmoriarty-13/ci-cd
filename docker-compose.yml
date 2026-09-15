@@ -98,6 +98,18 @@ services:
       DB_PORT: 5432
       DB_NAME: ${POSTGRES_DB}
       DB_SCHEMA: teacher_admin_schema
+      
+      # --- CONFIGURATION SPRING / JDBC / FLYWAY ---
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}?currentSchema=teacher_admin_schema
+      SPRING_DATASOURCE_USERNAME: ${TEACHER_ADMIN_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${TEACHER_ADMIN_DB_PASSWORD}
+      
+      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_FLYWAY_SCHEMAS: teacher_admin_schema
+      SPRING_FLYWAY_DEFAULT_SCHEMA: teacher_admin_schema
+      SPRING_FLYWAY_CREATE_SCHEMAS: "true"
+      
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: teacher_admin_schema
     networks:
       - frontend-net
       - backend-net
