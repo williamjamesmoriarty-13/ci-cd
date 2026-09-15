@@ -48,8 +48,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 20
+      start_period: 60s
 
   student-service:
     build:
@@ -83,8 +83,8 @@ services:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5001/health')"]
       interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 20
+      start_period: 60s
 
   teacher-admin-service:
     build:
@@ -114,8 +114,8 @@ services:
       test: ["CMD", "nc", "-z", "localhost", "8080"]
       interval: 5s
       timeout: 5s
-      retries: 15
-      start_period: 100s
+      retries: 25
+      start_period: 150s
 
   enrollment-service:
     build:
@@ -149,8 +149,8 @@ services:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5003/health')"]
       interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 15s
+      retries: 20
+      start_period: 45s
 
   frontend:
     build:
@@ -189,5 +189,5 @@ services:
       test: ["CMD", "curl", "-f", "-s", "http://localhost:8080/"]
       interval: 5s
       timeout: 5s
-      retries: 5
-      start_period: 5s
+      retries: 15
+      start_period: 15s
