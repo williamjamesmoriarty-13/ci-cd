@@ -25,7 +25,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '21'                        # garde aligné avec ton Java ≥21
+          java-version: '21'                        # gardes aligné avec ton Java ≥21
           cache: 'maven'
 
       - name: Lint & SCA — teacher-admin-service uniquement
