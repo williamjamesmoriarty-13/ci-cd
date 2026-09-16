@@ -1,11 +1,5 @@
 name: MPR — enrollment-service
 
-# Déclenché sur merge vers main. e2e → build → scan → push Docker Hub →
-# bump du tag dans university-helm (branche CI_Confirmed).
-# AUCUN déploiement ici : ArgoCD surveille le repo Helm et synchronise
-# lui-même. Les migrations DB ne sont pas ici non plus — hook Helm
-# pre-upgrade côté chart, exécuté par le cluster au moment du déploiement.
-
 on:
   push:
     branches: [main]
@@ -42,11 +36,6 @@ jobs:
       - name: Déterminer le tag d'image
         id: vars
         run: echo "image_tag=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
-        # Tag = SHA court du commit. Ton values.yaml a un commentaire
-        # "latest à remplacer par des tags versionnés avant rollback" —
-        # le SHA est déjà un tag explicite et traçable, cohérent avec ça.
-        # Si tu préfères un versioning sémantique (v1.2.3), remplace
-        # cette ligne par ta propre logique de bump.
 
       - name: Build de l'image
         run: |
@@ -55,23 +44,18 @@ jobs:
             enrollment-service/
 
       - name: Scan de vulnérabilités — Trivy (avant push)
-        uses: aquasecurity/trivy-action@v0.36.0   # vérifie toi-même la dernière release
+        uses: aquasecurity/trivy-action@v0.36.0  
         with:
           image-ref: docker.io/darbi/university-enrollment-service:${{ steps.vars.outputs.image_tag }}
           severity: CRITICAL,HIGH
           exit-code: '1'
           ignore-unfixed: true
-        # Pas redondant avec le scan PR : nouveau build à partir du commit
-        # mergé, et la base Trivy change tous les jours. C'est le vrai
-        # verrou avant que l'image parte en registre.
 
       - name: Connexion à Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          # Token d'accès Docker Hub (Account Settings > Security > New
-          # Access Token) — jamais ton mot de passe de compte.
 
       - name: Push vers Docker Hub
         run: docker push docker.io/darbi/university-enrollment-service:${{ steps.vars.outputs.image_tag }}
@@ -103,7 +87,6 @@ jobs:
         working-directory: university-helm/university-app
         run: |
           yq -i '.enrollmentService.tag = "${{ needs.build-scan-push.outputs.image_tag }}"' values.yaml
-          # <-- adapte le chemin si values.yaml n'est pas à la racine du repo
 
       - name: Push vers la branche CI_Confirmed
         working-directory: university-helm
@@ -112,7 +95,4 @@ jobs:
           git add university-app/values.yaml
           git commit -m "chore(enrollment-service): bump image to ${{ needs.build-scan-push.outputs.image_tag }}"
           git push origin CI_Confirmed --force-with-lease
-          # force-with-lease : suppose que CI_Confirmed reflète toujours
-          # le dernier merge, pas un historique cumulatif de déploiements.
-          # Si tu veux garder chaque bump comme commit distinct dans
-          # l'historique de la branche, retire --force-with-lease.
+
