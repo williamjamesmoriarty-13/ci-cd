@@ -29,10 +29,6 @@ jobs:
 
       - name: Build + up docker-compose + tests e2e
         run: ./scripts/e2e-test.sh
-        # Seul gate avant build/push. Se redéclenche à l'identique si un
-        # autre service est mergé en même temps (chaque pipeline MPR le
-        # relance) — accepté pour rester simple, à revoir si la fréquence
-        # de merge rend ça coûteux.
 
   build-scan-push:
     name: Build, scan Trivy, push Docker Hub
