@@ -53,24 +53,11 @@ jobs:
       - name: Tests unitaires
         working-directory: enrollment-service
         run: pytest tests/unit/enrollment-service-test.py -v --cov=app
-        # Aucun service Postgres ici volontairement — voir migration-check
-        # pour la partie DB. Si un test échoue faute de DB, il n'est pas
-        # vraiment unitaire : mocke-le ou déplace-le en intégration.
-
-      # NOTE — connectivité inter-services (enrollment appelle probablement
-      # student-service et/ou teacher-admin-service) : ne PAS lancer les
-      # 3 services ici. Mocke ces appels HTTP (responses / pytest-httpx).
-      # La vraie connectivité inter-services se teste après déploiement
-      # (smoke tests sur staging), pas en PR.
 
   migration-check:
     name: Vérification des migrations Alembic
     needs: lint
     runs-on: ubuntu-latest
-    # PAS de bloc `services:` ici : les service containers démarrent AVANT
-    # le checkout du repo, donc un volume pointant vers postgres/init/
-    # serait vide au démarrage. On lance Postgres nous-mêmes, après
-    # checkout, pour que le vrai 01-init-schemas.sh tourne comme en local.
     steps:
       - uses: actions/checkout@v4
 
@@ -112,9 +99,6 @@ jobs:
       - name: Appliquer les migrations
         working-directory: enrollment-service
         env:
-          # Même contrat que ton docker-compose.yml, sauf DB_HOST : en CI
-          # Postgres tourne en port publié sur le runner (localhost).
-          # Vérifie que ton alembic/env.py lit bien CES noms de variables.
           DB_USER: enrollment_app
           DB_PASSWORD: enrollment_app_pwd
           DB_HOST: localhost
@@ -151,7 +135,7 @@ jobs:
         run: docker build -f enrollment-service/Dockerfile -t enrollment-service:pr-${{ github.event.pull_request.number }} enrollment-service/
 
       - name: Scan de vulnérabilités — Trivy
-        uses: aquasecurity/trivy-action@v0.36.0   # vérifie toi-même la dernière release avant de committer
+        uses: aquasecurity/trivy-action@v0.36.0   
         with:
           image-ref: enrollment-service:pr-${{ github.event.pull_request.number }}
           severity: CRITICAL,HIGH
